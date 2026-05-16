@@ -48,6 +48,8 @@ export const swaggerDocument = {
         properties: {
           id: { type: 'string', example: '60d0fe4f5311236168a109ca' },
           clerkId: { type: 'string', example: 'user_2xyz...' },
+          shopId: { type: 'string', example: '60d0fe4f5311236168a109c9' },
+          role: { type: 'string', enum: ['OWNER', 'BARBER'], example: 'OWNER' },
           name: { type: 'string', example: 'John Doe' },
           email: { type: 'string', example: 'john@example.com' },
           shopName: { type: 'string', example: 'Doe Barbershop' },
@@ -59,6 +61,36 @@ export const swaggerDocument = {
             type: 'array',
             items: { $ref: '#/components/schemas/BusinessHours' },
           },
+        },
+      },
+      Subscription: {
+        type: 'object',
+        properties: {
+          plan: { type: 'string', enum: ['MONTHLY', 'YEARLY', 'NONE'], example: 'MONTHLY' },
+          status: { type: 'string', enum: ['TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'EXPIRED'], example: 'ACTIVE' },
+          stripeCustomerId: { type: 'string', example: 'cus_abc...' },
+          stripeSubscriptionId: { type: 'string', example: 'sub_xyz...' },
+          currentPeriodEnd: { type: 'string', format: 'date-time' },
+          trialEndsAt: { type: 'string', format: 'date-time' },
+          gracePeriodEndsAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Shop: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '60d0fe4f5311236168a109c9' },
+          ownerId: { type: 'string', example: 'user_2xyz...' },
+          name: { type: 'string', example: 'Doe Barbershop' },
+          slug: { type: 'string', example: 'doe-barbershop' },
+          subscription: { $ref: '#/components/schemas/Subscription' },
+          maxBarbersIncluded: { type: 'integer', example: 5 },
+        },
+      },
+      ShopWithBarbers: {
+        type: 'object',
+        properties: {
+          shop: { $ref: '#/components/schemas/Shop' },
+          barbers: { type: 'array', items: { $ref: '#/components/schemas/Barber' } },
         },
       },
       Customer: {
@@ -845,6 +877,226 @@ export const swaggerDocument = {
             },
           },
           400: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops': {
+      post: {
+        tags: ['Shops'],
+        summary: 'Create Shop',
+        description: 'Creates a new barbershop account. The authenticated barber becomes the shop OWNER.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name'],
+                properties: {
+                  name: { type: 'string', example: 'Doe Barbershop' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Shop created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Shop' },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          409: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops/me': {
+      get: {
+        tags: ['Shops'],
+        summary: 'Get My Shop',
+        description: 'Retrieves the authenticated barber\'s shop with all barbers.',
+        security: [{ ClerkAuth: [] }],
+        responses: {
+          200: {
+            description: 'Shop retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/ShopWithBarbers' },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops/me/barbers': {
+      post: {
+        tags: ['Shops'],
+        summary: 'Add Barber to Shop',
+        description: 'Adds a new barber to the shop. Only the shop OWNER can perform this action. First 5 barbers are included in the base plan, $3/month per additional barber.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['barberClerkId', 'barberName', 'barberEmail'],
+                properties: {
+                  barberClerkId: { type: 'string', example: 'user_2abc...' },
+                  barberName: { type: 'string', example: 'Jane Barber' },
+                  barberEmail: { type: 'string', example: 'jane@example.com' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Barber added successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Barber' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops/me/subscribe': {
+      post: {
+        tags: ['Subscriptions'],
+        summary: 'Start Subscription Checkout',
+        description: 'Creates a Stripe Checkout Session for subscription signup. Monthly: $29/month, Yearly: $23/month ($276/year). First subscription includes a 14-day free trial. Only the shop OWNER can subscribe.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['plan'],
+                properties: {
+                  plan: { type: 'string', enum: ['MONTHLY', 'YEARLY'], example: 'MONTHLY' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Stripe Checkout Session URL returned',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        sessionUrl: { type: 'string', example: 'https://checkout.stripe.com/c/pay/cs_test_...' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops/me/billing-portal': {
+      post: {
+        tags: ['Subscriptions'],
+        summary: 'Open Billing Portal',
+        description: 'Creates a Stripe Billing Portal session URL. The shop owner can manage their subscription, update payment method, or cancel.',
+        security: [{ ClerkAuth: [] }],
+        responses: {
+          200: {
+            description: 'Billing portal URL returned',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        portalUrl: { type: 'string', example: 'https://billing.stripe.com/p/session/...' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/shops/{slug}': {
+      get: {
+        tags: ['Shops'],
+        summary: 'Get Shop by Slug (Public)',
+        description: 'Retrieves a shop and its barbers by URL slug. Publicly accessible for the customer booking page.',
+        parameters: [
+          {
+            name: 'slug',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The URL slug of the shop',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Shop retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/ShopWithBarbers' },
+                  },
+                },
+              },
+            },
+          },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
         },
       },
     },

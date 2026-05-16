@@ -9,11 +9,19 @@ export interface IBusinessHours {
 }
 
 /**
- * Barber / Salon Owner entity.
+ * Barber role within a shop.
+ */
+export type BarberRole = 'OWNER' | 'BARBER';
+
+/**
+ * Barber / Salon Staff entity.
  * Authenticated via Clerk (B2B flow).
+ * Belongs to a Shop (multi-barber accounts).
  */
 export interface IBarber {
   clerkId: string;
+  shopId?: string;
+  role: BarberRole;
   name: string;
   email: string;
   slug: string;

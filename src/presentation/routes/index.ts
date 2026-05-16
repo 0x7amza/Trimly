@@ -5,6 +5,7 @@ import { MongoBarberRepository } from '@infrastructure/database/repositories/Mon
 import { MongoCustomerRepository } from '@infrastructure/database/repositories/MongoCustomerRepository';
 import { MongoServiceRepository } from '@infrastructure/database/repositories/MongoServiceRepository';
 import { MongoBookingRepository } from '@infrastructure/database/repositories/MongoBookingRepository';
+import { MongoShopRepository } from '@infrastructure/database/repositories/MongoShopRepository';
 
 // Services
 import { TwilioOtpService } from '@infrastructure/services/TwilioOtpService';
@@ -20,6 +21,16 @@ import { LoginCustomerUseCase } from '@application/use-cases/auth/LoginCustomerU
 import { SyncBarberUseCase } from '@application/use-cases/barber/SyncBarberUseCase';
 import { GetBarberProfileUseCase } from '@application/use-cases/barber/GetBarberProfileUseCase';
 import { UpdateBarberProfileUseCase } from '@application/use-cases/barber/UpdateBarberProfileUseCase';
+
+// Use Cases — Shop
+import { CreateShopUseCase } from '@application/use-cases/shop/CreateShopUseCase';
+import { GetShopUseCase } from '@application/use-cases/shop/GetShopUseCase';
+import { AddBarberToShopUseCase } from '@application/use-cases/shop/AddBarberToShopUseCase';
+
+// Use Cases — Subscription
+import { CreateSubscriptionCheckoutUseCase } from '@application/use-cases/subscription/CreateSubscriptionCheckoutUseCase';
+import { CreateBillingPortalUseCase } from '@application/use-cases/subscription/CreateBillingPortalUseCase';
+import { HandleSubscriptionWebhookUseCase } from '@application/use-cases/subscription/HandleSubscriptionWebhookUseCase';
 
 // Use Cases — Service
 import { CreateServiceUseCase } from '@application/use-cases/service/CreateServiceUseCase';
@@ -40,13 +51,18 @@ import { HandleStripeWebhookUseCase } from '@application/use-cases/payment/Handl
 // Controllers
 import { AuthController } from '@presentation/controllers/AuthController';
 import { BarberController } from '@presentation/controllers/BarberController';
+import { ShopController } from '@presentation/controllers/ShopController';
 import { ServiceController } from '@presentation/controllers/ServiceController';
 import { BookingController } from '@presentation/controllers/BookingController';
 import { PaymentController } from '@presentation/controllers/PaymentController';
 
+// Middlewares
+import { createSubscriptionGuard } from '@presentation/middlewares/subscriptionGuard';
+
 // Route Factories
 import { createAuthRoutes } from './auth.routes';
 import { createBarberRoutes } from './barber.routes';
+import { createShopRoutes } from './shop.routes';
 import { createServiceRoutes } from './service.routes';
 import { createBookingRoutes } from './booking.routes';
 import { createPaymentRoutes } from './payment.routes';
@@ -63,10 +79,15 @@ export function createApiRouter(): Router {
   const customerRepo = new MongoCustomerRepository();
   const serviceRepo = new MongoServiceRepository();
   const bookingRepo = new MongoBookingRepository();
+  const shopRepo = new MongoShopRepository();
 
   // ── Instantiate External Services ──
   const otpService = new TwilioOtpService();
   const paymentService = new StripePaymentService();
+
+  // ── Instantiate Subscription Guard Middlewares ──
+  const subscriptionGuardBarber = createSubscriptionGuard(barberRepo, shopRepo, 'barber');
+  const subscriptionGuardCustomer = createSubscriptionGuard(barberRepo, shopRepo, 'customer');
 
   // ── Instantiate Use Cases ──
   const sendOtpUseCase = new SendOtpUseCase(otpService, customerRepo);
@@ -74,9 +95,17 @@ export function createApiRouter(): Router {
   const registerUseCase = new RegisterCustomerUseCase(customerRepo);
   const loginUseCase = new LoginCustomerUseCase(customerRepo);
 
-  const syncBarberUseCase = new SyncBarberUseCase(barberRepo);
+  const syncBarberUseCase = new SyncBarberUseCase(barberRepo, shopRepo);
   const getBarberProfileUseCase = new GetBarberProfileUseCase(barberRepo);
   const updateBarberProfileUseCase = new UpdateBarberProfileUseCase(barberRepo);
+
+  const createShopUseCase = new CreateShopUseCase(shopRepo, barberRepo);
+  const getShopUseCase = new GetShopUseCase(shopRepo, barberRepo);
+  const addBarberUseCase = new AddBarberToShopUseCase(shopRepo, barberRepo);
+
+  const subscriptionCheckoutUseCase = new CreateSubscriptionCheckoutUseCase(shopRepo, barberRepo, paymentService);
+  const billingPortalUseCase = new CreateBillingPortalUseCase(shopRepo, barberRepo, paymentService);
+  const subscriptionWebhookUseCase = new HandleSubscriptionWebhookUseCase(shopRepo, paymentService);
 
   const createServiceUseCase = new CreateServiceUseCase(serviceRepo);
   const getBarberServicesUseCase = new GetBarberServicesUseCase(serviceRepo);
@@ -94,6 +123,7 @@ export function createApiRouter(): Router {
   // ── Instantiate Controllers ──
   const authController = new AuthController(sendOtpUseCase, verifyOtpUseCase, registerUseCase, loginUseCase);
   const barberController = new BarberController(syncBarberUseCase, getBarberProfileUseCase, updateBarberProfileUseCase);
+  const shopController = new ShopController(createShopUseCase, getShopUseCase, addBarberUseCase, subscriptionCheckoutUseCase, billingPortalUseCase);
   const serviceController = new ServiceController(createServiceUseCase, getBarberServicesUseCase, updateServiceUseCase, deleteServiceUseCase);
   const bookingController = new BookingController(availabilityUseCase, createOnlineBookingUseCase, createManualBookingUseCase, getMyBookingsUseCase, updateBookingStatusUseCase);
   const paymentController = new PaymentController(webhookUseCase);
@@ -101,8 +131,9 @@ export function createApiRouter(): Router {
   // ── Mount Routes ──
   router.use('/auth', createAuthRoutes(authController));
   router.use('/barbers', createBarberRoutes(barberController));
-  router.use('/services', createServiceRoutes(serviceController));
-  router.use('/bookings', createBookingRoutes(bookingController));
+  router.use('/shops', createShopRoutes(shopController));
+  router.use('/services', createServiceRoutes(serviceController, subscriptionGuardBarber));
+  router.use('/bookings', createBookingRoutes(bookingController, subscriptionGuardBarber, subscriptionGuardCustomer));
   router.use('/payments', createPaymentRoutes(paymentController));
 
   return router;

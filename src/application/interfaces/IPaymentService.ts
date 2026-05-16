@@ -18,6 +18,27 @@ export interface IPaymentService {
   ): Promise<{ clientSecret: string; paymentIntentId: string }>;
 
   /**
+   * Create a Stripe Checkout Session for subscription signup.
+   */
+  createSubscriptionCheckout(params: {
+    priceId: string;
+    shopId: string;
+    stripeCustomerId?: string;
+    customerEmail: string;
+    successUrl: string;
+    cancelUrl: string;
+    trialDays?: number;
+  }): Promise<{ sessionUrl: string; stripeCustomerId: string }>;
+
+  /**
+   * Create a Stripe Billing Portal session for managing subscriptions.
+   */
+  createBillingPortalSession(
+    stripeCustomerId: string,
+    returnUrl: string,
+  ): Promise<{ portalUrl: string }>;
+
+  /**
    * Verify the Stripe webhook signature and parse the event.
    */
   verifyWebhookSignature(

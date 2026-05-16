@@ -13,6 +13,11 @@ export class MongoBarberRepository implements IBarberRepository {
     return doc ? this.toEntity(doc) : null;
   }
 
+  async findByShopId(shopId: string): Promise<IBarber[]> {
+    const docs = await BarberModel.find({ shopId }).lean();
+    return docs.map((doc) => this.toEntity(doc));
+  }
+
   async create(barber: Partial<IBarber>): Promise<IBarber> {
     const doc = await BarberModel.create(barber);
     return this.toEntity(doc.toObject());
@@ -39,6 +44,8 @@ export class MongoBarberRepository implements IBarberRepository {
   private toEntity(doc: any): IBarber {
     return {
       clerkId: doc.clerkId,
+      shopId: doc.shopId,
+      role: doc.role || 'OWNER',
       name: doc.name,
       email: doc.email,
       slug: doc.slug,

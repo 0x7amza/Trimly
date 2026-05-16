@@ -23,6 +23,15 @@ const barberSchema = new Schema<IBarberDocument>(
       unique: true,
       index: true,
     },
+    shopId: {
+      type: String,
+      index: true,
+    },
+    role: {
+      type: String,
+      enum: ['OWNER', 'BARBER'],
+      default: 'OWNER',
+    },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
     slug: {

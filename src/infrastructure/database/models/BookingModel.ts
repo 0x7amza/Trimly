@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { IBooking, BookingStatus, PaymentStatus } from '@domain/entities/Booking';
 
-export interface IBookingDocument extends Omit<IBooking, 'id'>, Document {}
+export interface IBookingDocument extends Omit<IBooking, 'id'>, Document { }
 
 const bookingSchema = new Schema<IBookingDocument>(
   {

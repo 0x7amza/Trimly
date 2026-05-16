@@ -27,6 +27,12 @@ const envSchema = z.object({
   // Stripe
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  STRIPE_MONTHLY_PRICE_ID: z.string().min(1),
+  STRIPE_YEARLY_PRICE_ID: z.string().min(1),
+  STRIPE_EXTRA_BARBER_PRICE_ID: z.string().min(1),
+
+  // Frontend
+  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
 
   // Twilio
   TWILIO_ACCOUNT_SID: z.string().min(1),

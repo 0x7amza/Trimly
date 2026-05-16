@@ -26,6 +26,10 @@ export function createApp(): express.Application {
 
   // ── Swagger API Documentation ──
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.get('/api-docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerDocument);
+  });
 
   // ── Security ──
   app.use(helmet());

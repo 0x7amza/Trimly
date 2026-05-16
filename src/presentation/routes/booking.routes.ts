@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { BookingController } from '@presentation/controllers/BookingController';
 import { requireBarberAuth } from '@presentation/middlewares/clerkAuth';
 import { requireCustomerAuth } from '@presentation/middlewares/customerAuth';
@@ -10,7 +10,11 @@ import {
   updateBookingStatusSchema,
 } from '@presentation/validators/booking.validators';
 
-export function createBookingRoutes(controller: BookingController): Router {
+export function createBookingRoutes(
+  controller: BookingController,
+  subscriptionGuardBarber: RequestHandler,
+  subscriptionGuardCustomer: RequestHandler,
+): Router {
   const router = Router();
 
   // Public: View available slots
@@ -20,19 +24,21 @@ export function createBookingRoutes(controller: BookingController): Router {
     controller.getAvailability,
   );
 
-  // Customer: Create online booking (requires JWT)
+  // Customer: Create online booking (requires JWT + active subscription on target barber's shop)
   router.post(
     '/online',
     requireCustomerAuth,
     validate(createOnlineBookingSchema),
+    subscriptionGuardCustomer,
     controller.createOnline,
   );
 
-  // Barber: Create manual booking (requires Clerk)
+  // Barber: Create manual booking (requires Clerk + active subscription)
   router.post(
     '/manual',
     requireBarberAuth,
     validate(createManualBookingSchema),
+    subscriptionGuardBarber,
     controller.createManual,
   );
 

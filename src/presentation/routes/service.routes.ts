@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { ServiceController } from '@presentation/controllers/ServiceController';
 import { requireBarberAuth } from '@presentation/middlewares/clerkAuth';
 import { validate } from '@presentation/middlewares/validate';
@@ -9,7 +9,10 @@ import {
   deleteServiceSchema,
 } from '@presentation/validators/service.validators';
 
-export function createServiceRoutes(controller: ServiceController): Router {
+export function createServiceRoutes(
+  controller: ServiceController,
+  subscriptionGuard: RequestHandler,
+): Router {
   const router = Router();
 
   // Public: Customers can browse a barber's services
@@ -19,10 +22,11 @@ export function createServiceRoutes(controller: ServiceController): Router {
     controller.getByBarber,
   );
 
-  // Protected: CUD operations require Clerk auth
+  // Protected: CUD operations require Clerk auth + active subscription
   router.post(
     '/',
     requireBarberAuth,
+    subscriptionGuard,
     validate(createServiceSchema),
     controller.create,
   );
@@ -30,6 +34,7 @@ export function createServiceRoutes(controller: ServiceController): Router {
   router.put(
     '/:id',
     requireBarberAuth,
+    subscriptionGuard,
     validate(updateServiceSchema),
     controller.update,
   );
@@ -37,6 +42,7 @@ export function createServiceRoutes(controller: ServiceController): Router {
   router.delete(
     '/:id',
     requireBarberAuth,
+    subscriptionGuard,
     validate(deleteServiceSchema),
     controller.delete,
   );
