@@ -1,0 +1,852 @@
+export const swaggerDocument = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Trimly API',
+    version: '1.0.0',
+    description: 'Complete API documentation for the Trimly Barbershop SaaS platform.',
+  },
+  servers: [
+    {
+      url: '/api/v1',
+      description: 'API v1',
+    },
+  ],
+  components: {
+    securitySchemes: {
+      ClerkAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Clerk Bearer token for Barbers (B2B).',
+      },
+      CustomerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Custom JWT Bearer token for Customers (B2C).',
+      },
+    },
+    schemas: {
+      ErrorResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: false },
+          error: { type: 'string', example: 'Error message description' },
+        },
+      },
+      BusinessHours: {
+        type: 'object',
+        properties: {
+          day: { type: 'integer', minimum: 0, maximum: 6, example: 1 },
+          open: { type: 'string', pattern: '^\\d{2}:\\d{2}$', example: '09:00' },
+          close: { type: 'string', pattern: '^\\d{2}:\\d{2}$', example: '18:00' },
+          isClosed: { type: 'boolean', example: false },
+        },
+      },
+      Barber: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '60d0fe4f5311236168a109ca' },
+          clerkId: { type: 'string', example: 'user_2xyz...' },
+          name: { type: 'string', example: 'John Doe' },
+          email: { type: 'string', example: 'john@example.com' },
+          shopName: { type: 'string', example: 'Doe Barbershop' },
+          slug: { type: 'string', example: 'doe-barbershop' },
+          phone: { type: 'string', example: '+447000000000' },
+          address: { type: 'string', example: '123 Barber St, London' },
+          bio: { type: 'string', example: 'Expert barber with 10 years experience.' },
+          businessHours: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/BusinessHours' },
+          },
+        },
+      },
+      Customer: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '60d0fe4f5311236168a109cb' },
+          phone: { type: 'string', example: '+447000000001' },
+          email: { type: 'string', example: 'customer@example.com' },
+          name: { type: 'string', example: 'Alice Smith' },
+        },
+      },
+      Service: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '60d0fe4f5311236168a109cc' },
+          barberId: { type: 'string', example: 'user_2xyz...' },
+          name: { type: 'string', example: 'Men Haircut' },
+          price: { type: 'integer', description: 'Price in pence', example: 2500 },
+          durationMinutes: { type: 'integer', example: 30 },
+          isActive: { type: 'boolean', example: true },
+        },
+      },
+      Booking: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: '60d0fe4f5311236168a109cd' },
+          barberId: { type: 'string', example: 'user_2xyz...' },
+          customerId: { type: 'string', example: '60d0fe4f5311236168a109cb' },
+          serviceId: { type: 'string', example: '60d0fe4f5311236168a109cc' },
+          serviceSnapshot: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', example: 'Men Haircut' },
+              price: { type: 'integer', example: 2500 },
+              durationMinutes: { type: 'integer', example: 30 },
+            },
+          },
+          startTime: { type: 'string', format: 'date-time' },
+          endTime: { type: 'string', format: 'date-time' },
+          status: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'], example: 'CONFIRMED' },
+          paymentStatus: { type: 'string', enum: ['PENDING', 'PAID', 'REFUNDED'], example: 'PAID' },
+          paymentIntentId: { type: 'string', example: 'pi_3xyz...' },
+          type: { type: 'string', enum: ['ONLINE', 'MANUAL'], example: 'ONLINE' },
+          notes: { type: 'string', example: 'Customer wants a fade' },
+        },
+      },
+    },
+  },
+  paths: {
+    '/auth/customer/send-otp': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Send OTP to Customer',
+        description: 'Sends a One-Time Password to the specified phone number via WhatsApp or SMS.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['phone'],
+                properties: {
+                  phone: { type: 'string', example: '+447000000001' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'OTP sent successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'OTP sent successfully' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/auth/customer/verify-otp': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Verify OTP',
+        description: 'Verifies the OTP sent to the customer and returns a JWT token.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['phone', 'code'],
+                properties: {
+                  phone: { type: 'string', example: '+447000000001' },
+                  code: { type: 'string', example: '123456' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'OTP verified successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        customer: { $ref: '#/components/schemas/Customer' },
+                        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                        isNew: { type: 'boolean', example: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/auth/customer/register': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Register Customer (Email/Password)',
+        description: 'Registers a new customer using email and password.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['phone', 'email', 'password'],
+                properties: {
+                  phone: { type: 'string', example: '+447000000001' },
+                  email: { type: 'string', example: 'customer@example.com' },
+                  password: { type: 'string', example: 'SecureP@ssw0rd' },
+                  name: { type: 'string', example: 'Alice Smith' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Customer registered successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        customer: { $ref: '#/components/schemas/Customer' },
+                        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          409: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/auth/customer/login': {
+      post: {
+        tags: ['Authentication'],
+        summary: 'Login Customer (Email/Password)',
+        description: 'Logs in a customer using email or phone number and password.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['identifier', 'password'],
+                properties: {
+                  identifier: { type: 'string', example: 'customer@example.com' },
+                  password: { type: 'string', example: 'SecureP@ssw0rd' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Customer logged in successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        customer: { $ref: '#/components/schemas/Customer' },
+                        token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/barbers/sync': {
+      post: {
+        tags: ['Barbers'],
+        summary: 'Sync Barber Profile',
+        description: 'Syncs the barber profile from Clerk to the database upon initial sign-in.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'email'],
+                properties: {
+                  name: { type: 'string', example: 'John Doe' },
+                  email: { type: 'string', example: 'john@example.com' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Barber profile synced successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Barber' },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/barbers/me': {
+      get: {
+        tags: ['Barbers'],
+        summary: 'Get Barber Profile',
+        description: 'Retrieves the authenticated barber\'s profile.',
+        security: [{ ClerkAuth: [] }],
+        responses: {
+          200: {
+            description: 'Profile retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Barber' },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+      put: {
+        tags: ['Barbers'],
+        summary: 'Update Barber Profile',
+        description: 'Updates the authenticated barber\'s profile, including business hours.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  shopName: { type: 'string', example: 'Doe Barbershop' },
+                  phone: { type: 'string', example: '+447000000000' },
+                  address: { type: 'string', example: '123 Barber St, London' },
+                  bio: { type: 'string', example: 'Expert barber with 10 years experience.' },
+                  businessHours: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/BusinessHours' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Profile updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Barber' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/services': {
+      post: {
+        tags: ['Services'],
+        summary: 'Create Service',
+        description: 'Creates a new service for the authenticated barber.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'price', 'durationMinutes'],
+                properties: {
+                  name: { type: 'string', example: 'Men Haircut' },
+                  price: { type: 'integer', description: 'Price in pence', example: 2500 },
+                  durationMinutes: { type: 'integer', example: 30 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Service created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Service' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/services/barber/{clerkId}': {
+      get: {
+        tags: ['Services'],
+        summary: 'Get Barber Services',
+        description: 'Retrieves all active services for a specific barber. Publicly accessible.',
+        parameters: [
+          {
+            name: 'clerkId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The Clerk ID of the barber',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Services retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Service' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/services/{id}': {
+      put: {
+        tags: ['Services'],
+        summary: 'Update Service',
+        description: 'Updates an existing service. The authenticated barber must own the service.',
+        security: [{ ClerkAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The ID of the service',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Men Haircut and Beard' },
+                  price: { type: 'integer', description: 'Price in pence', example: 3500 },
+                  durationMinutes: { type: 'integer', example: 45 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Service updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Service' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+      delete: {
+        tags: ['Services'],
+        summary: 'Delete Service',
+        description: 'Soft deletes a service. The authenticated barber must own the service.',
+        security: [{ ClerkAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The ID of the service',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Service deleted successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    message: { type: 'string', example: 'Service deleted' },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/bookings/barber/{clerkId}/availability': {
+      get: {
+        tags: ['Bookings'],
+        summary: 'Get Availability',
+        description: 'Calculates available 15-minute booking slots for a specific date and service. Publicly accessible.',
+        parameters: [
+          {
+            name: 'clerkId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The Clerk ID of the barber',
+          },
+          {
+            name: 'serviceId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The ID of the service being booked',
+          },
+          {
+            name: 'date',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+            description: 'The date in YYYY-MM-DD format',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Availability calculated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: { type: 'string', format: 'date-time', example: '2023-10-27T09:00:00.000Z' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/bookings/online': {
+      post: {
+        tags: ['Bookings'],
+        summary: 'Create Online Booking',
+        description: 'Creates a new online booking for a customer and returns a Stripe Payment Intent client secret.',
+        security: [{ CustomerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['barberId', 'serviceId', 'startTime'],
+                properties: {
+                  barberId: { type: 'string', example: 'user_2xyz...' },
+                  serviceId: { type: 'string', example: '60d0fe4f5311236168a109cc' },
+                  startTime: { type: 'string', format: 'date-time' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Booking created and Payment Intent generated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        booking: { $ref: '#/components/schemas/Booking' },
+                        clientSecret: { type: 'string', example: 'pi_3xyz_secret_abc...' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          409: {
+            description: 'Time slot is no longer available (Race condition)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/bookings/manual': {
+      post: {
+        tags: ['Bookings'],
+        summary: 'Create Manual Booking',
+        description: 'Creates a manual walk-in booking by the barber.',
+        security: [{ ClerkAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['serviceId', 'startTime'],
+                properties: {
+                  serviceId: { type: 'string', example: '60d0fe4f5311236168a109cc' },
+                  startTime: { type: 'string', format: 'date-time' },
+                  customerName: { type: 'string', example: 'Walk-in Customer' },
+                  customerPhone: { type: 'string', example: '+447000000002' },
+                  notes: { type: 'string', example: 'Requires quick trim' },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Manual booking created successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Booking' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          409: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/bookings/me/barber': {
+      get: {
+        tags: ['Bookings'],
+        summary: 'Get Barber Bookings',
+        description: 'Retrieves all non-cancelled bookings for the authenticated barber.',
+        security: [{ ClerkAuth: [] }],
+        responses: {
+          200: {
+            description: 'Bookings retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Booking' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/bookings/me/customer': {
+      get: {
+        tags: ['Bookings'],
+        summary: 'Get Customer Bookings',
+        description: 'Retrieves all bookings for the authenticated customer.',
+        security: [{ CustomerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Bookings retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/Booking' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/bookings/{id}/status': {
+      patch: {
+        tags: ['Bookings'],
+        summary: 'Update Booking Status',
+        description: 'Updates the status of a booking (e.g., to CANCELLED or COMPLETED). Barber must own the booking.',
+        security: [{ ClerkAuth: [] }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'The ID of the booking',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['status'],
+                properties: {
+                  status: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED'] },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Booking status updated successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: { $ref: '#/components/schemas/Booking' },
+                  },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+          404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/payments/webhook': {
+      post: {
+        tags: ['Payments'],
+        summary: 'Stripe Webhook',
+        description: 'Endpoint to receive asynchronous payment intent status updates from Stripe. This endpoint expects a raw body and the stripe-signature header.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', description: 'Raw Stripe Event Payload' },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Webhook received successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: { received: { type: 'boolean', example: true } },
+                },
+              },
+            },
+          },
+          400: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+  },
+};

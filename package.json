@@ -1,0 +1,46 @@
+{
+  "name": "trimly-api",
+  "version": "1.0.0",
+  "description": "B2B2C SaaS backend for barbershop booking management",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
+    "build": "tsc",
+    "start": "node -r tsconfig-paths/register dist/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "barbershop",
+    "booking",
+    "saas"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@clerk/express": "^1.3.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.10.0",
+    "slugify": "^1.6.6",
+    "stripe": "^17.5.0",
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.4.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.13.0",
+    "@types/swagger-ui-express": "^4.1.8",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3"
+  }
+}
