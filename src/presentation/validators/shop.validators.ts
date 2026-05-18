@@ -8,9 +8,9 @@ export const createShopSchema = {
 
 export const addBarberSchema = {
   body: z.object({
-    barberClerkId: z.string().min(1, 'Barber Clerk ID is required'),
     barberName: z.string().min(1, 'Barber name is required'),
     barberEmail: z.string().email('Invalid email address'),
+    barberPassword: z.string().min(8, 'Password must be at least 8 characters'),
   }),
 };
 

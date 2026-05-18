@@ -3,6 +3,7 @@ import { IShopRepository } from '@domain/repositories/IShopRepository';
 import { IBarberRepository } from '@domain/repositories/IBarberRepository';
 import { IBarber } from '@domain/entities/Barber';
 import { NotFoundError, ForbiddenError, ValidationError } from '@shared/errors/AppError';
+import { clerkClient } from '@clerk/express';
 
 /**
  * Add Barber to Shop Use Case.
@@ -20,7 +21,7 @@ export class AddBarberToShopUseCase {
 
   async execute(data: {
     ownerClerkId: string;
-    barberClerkId: string;
+    barberPassword?: string;
     barberName: string;
     barberEmail: string;
   }): Promise<IBarber> {
@@ -43,21 +44,32 @@ export class AddBarberToShopUseCase {
       console.log(`ℹ️  Shop ${shop.id} adding barber #${currentCount + 1} (extra charge applies)`);
     }
 
-    // 3. Check if barber already exists in a shop
-    const existingBarber = await this.barberRepo.findByClerkId(data.barberClerkId);
-    if (existingBarber?.shopId) {
-      throw new ValidationError('This barber is already assigned to a shop');
+    // 3. Create Barber in Clerk
+    let newClerkId: string;
+    try {
+      const user = await clerkClient.users.createUser({
+        emailAddress: [data.barberEmail],
+        password: data.barberPassword,
+        firstName: data.barberName.split(' ')[0],
+        lastName: data.barberName.split(' ').slice(1).join(' ') || undefined,
+      });
+      newClerkId = user.id;
+    } catch (error: any) {
+      if (error.errors?.[0]?.code === 'form_identifier_exists') {
+        throw new ValidationError('A user with this email already exists in Clerk.');
+      }
+      throw new ValidationError('Failed to create user in authentication provider: ' + error.message);
     }
 
     // 4. Generate slug for the barber
     let slug = slugify(data.barberName, { lower: true, strict: true });
     const existingSlug = await this.barberRepo.findBySlug(slug);
-    if (existingSlug && existingSlug.clerkId !== data.barberClerkId) {
+    if (existingSlug && existingSlug.clerkId !== newClerkId) {
       slug = `${slug}-${Math.random().toString(36).substring(2, 6)}`;
     }
 
     // 5. Upsert barber with shop assignment
-    return this.barberRepo.upsertByClerkId(data.barberClerkId, {
+    return this.barberRepo.upsertByClerkId(newClerkId, {
       name: data.barberName,
       email: data.barberEmail,
       slug,

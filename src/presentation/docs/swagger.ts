@@ -958,9 +958,9 @@ export const swaggerDocument = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['barberClerkId', 'barberName', 'barberEmail'],
+                required: ['barberPassword', 'barberName', 'barberEmail'],
                 properties: {
-                  barberClerkId: { type: 'string', example: 'user_2abc...' },
+                  barberPassword: { type: 'string', example: 'SecurePassword123' },
                   barberName: { type: 'string', example: 'Jane Barber' },
                   barberEmail: { type: 'string', example: 'jane@example.com' },
                 },
@@ -1097,6 +1097,84 @@ export const swaggerDocument = {
             },
           },
           404: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/statistics/shop': {
+      get: {
+        tags: ['Statistics'],
+        summary: 'Get Shop Statistics',
+        description: 'Retrieves aggregated booking statistics for the entire shop. Only the shop OWNER can perform this action.',
+        security: [{ ClerkAuth: [] }],
+        responses: {
+          200: {
+            description: 'Shop statistics retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        totalBookings: { type: 'integer', example: 120 },
+                        completedBookings: { type: 'integer', example: 100 },
+                        upcomingBookings: { type: 'integer', example: 15 },
+                        cancelledBookings: { type: 'integer', example: 5 },
+                        totalBarbers: { type: 'integer', example: 3 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
+        },
+      },
+    },
+    '/statistics/barber/{barberId}': {
+      get: {
+        tags: ['Statistics'],
+        summary: 'Get Barber Statistics',
+        description: 'Retrieves booking statistics for a specific barber. A barber can only view their own stats, while the shop OWNER can view stats for any barber.',
+        security: [{ ClerkAuth: [] }],
+        parameters: [
+          {
+            name: 'barberId',
+            in: 'path',
+            required: false,
+            schema: { type: 'string' },
+            description: 'The Clerk ID of the barber (optional if viewing own stats)',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Barber statistics retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    data: {
+                      type: 'object',
+                      properties: {
+                        totalBookings: { type: 'integer', example: 40 },
+                        completedBookings: { type: 'integer', example: 35 },
+                        upcomingBookings: { type: 'integer', example: 4 },
+                        cancelledBookings: { type: 'integer', example: 1 },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: { $ref: '#/components/schemas/ErrorResponse' },
+          403: { $ref: '#/components/schemas/ErrorResponse' },
         },
       },
     },

@@ -36,7 +36,7 @@ export class ShopController {
   addBarber = asyncHandler(async (req: Request, res: Response) => {
     const barber = await this.addBarberUseCase.execute({
       ownerClerkId: req.barberClerkId!,
-      barberClerkId: req.body.barberClerkId,
+      barberPassword: req.body.barberPassword,
       barberName: req.body.barberName,
       barberEmail: req.body.barberEmail,
     });

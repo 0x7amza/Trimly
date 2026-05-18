@@ -45,6 +45,10 @@ import { CreateManualBookingUseCase } from '@application/use-cases/booking/Creat
 import { GetMyBookingsUseCase } from '@application/use-cases/booking/GetMyBookingsUseCase';
 import { UpdateBookingStatusUseCase } from '@application/use-cases/booking/UpdateBookingStatusUseCase';
 
+// Use Cases — Statistics
+import { GetShopStatsUseCase } from '@application/use-cases/statistics/GetShopStatsUseCase';
+import { GetBarberStatsUseCase } from '@application/use-cases/statistics/GetBarberStatsUseCase';
+
 // Use Cases — Payment
 import { HandleStripeWebhookUseCase } from '@application/use-cases/payment/HandleStripeWebhookUseCase';
 
@@ -55,6 +59,7 @@ import { ShopController } from '@presentation/controllers/ShopController';
 import { ServiceController } from '@presentation/controllers/ServiceController';
 import { BookingController } from '@presentation/controllers/BookingController';
 import { PaymentController } from '@presentation/controllers/PaymentController';
+import { StatisticsController } from '@presentation/controllers/StatisticsController';
 
 // Middlewares
 import { createSubscriptionGuard } from '@presentation/middlewares/subscriptionGuard';
@@ -66,6 +71,7 @@ import { createShopRoutes } from './shop.routes';
 import { createServiceRoutes } from './service.routes';
 import { createBookingRoutes } from './booking.routes';
 import { createPaymentRoutes } from './payment.routes';
+import { createStatisticsRoutes } from './statistics.routes';
 
 /**
  * Composition Root — wires all dependencies together.
@@ -118,6 +124,9 @@ export function createApiRouter(): Router {
   const getMyBookingsUseCase = new GetMyBookingsUseCase(bookingRepo);
   const updateBookingStatusUseCase = new UpdateBookingStatusUseCase(bookingRepo);
 
+  const getShopStatsUseCase = new GetShopStatsUseCase(bookingRepo, barberRepo);
+  const getBarberStatsUseCase = new GetBarberStatsUseCase(bookingRepo);
+
   const webhookUseCase = new HandleStripeWebhookUseCase(bookingRepo, paymentService);
 
   // ── Instantiate Controllers ──
@@ -127,6 +136,7 @@ export function createApiRouter(): Router {
   const serviceController = new ServiceController(createServiceUseCase, getBarberServicesUseCase, updateServiceUseCase, deleteServiceUseCase);
   const bookingController = new BookingController(availabilityUseCase, createOnlineBookingUseCase, createManualBookingUseCase, getMyBookingsUseCase, updateBookingStatusUseCase);
   const paymentController = new PaymentController(webhookUseCase);
+  const statisticsController = new StatisticsController(getShopStatsUseCase, getBarberStatsUseCase);
 
   // ── Mount Routes ──
   router.use('/auth', createAuthRoutes(authController));
@@ -135,6 +145,7 @@ export function createApiRouter(): Router {
   router.use('/services', createServiceRoutes(serviceController, subscriptionGuardBarber));
   router.use('/bookings', createBookingRoutes(bookingController, subscriptionGuardBarber, subscriptionGuardCustomer));
   router.use('/payments', createPaymentRoutes(paymentController));
+  router.use('/statistics', createStatisticsRoutes(statisticsController));
 
   return router;
 }

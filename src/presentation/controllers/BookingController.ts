@@ -5,6 +5,7 @@ import { CreateOnlineBookingUseCase } from '@application/use-cases/booking/Creat
 import { CreateManualBookingUseCase } from '@application/use-cases/booking/CreateManualBookingUseCase';
 import { GetMyBookingsUseCase } from '@application/use-cases/booking/GetMyBookingsUseCase';
 import { UpdateBookingStatusUseCase } from '@application/use-cases/booking/UpdateBookingStatusUseCase';
+import { ForbiddenError } from '@shared/errors/AppError';
 
 export class BookingController {
   constructor(
@@ -35,15 +36,25 @@ export class BookingController {
   });
 
   createManual = asyncHandler(async (req: Request, res: Response) => {
+    const targetBarberId = req.body.barberId || req.barberClerkId!;
+    if (targetBarberId !== req.barberClerkId && req.barber!.role !== 'OWNER') {
+      throw new ForbiddenError('You can only create bookings for yourself');
+    }
+
     const booking = await this.createManualUseCase.execute({
-      barberId: req.barberClerkId!,
+      barberId: targetBarberId,
       ...req.body,
     });
     res.status(201).json({ success: true, data: booking });
   });
 
   getMyBookingsAsBarber = asyncHandler(async (req: Request, res: Response) => {
-    const bookings = await this.getBookingsUseCase.executeForBarber(req.barberClerkId!);
+    const targetBarberId = req.query.barberId ? String(req.query.barberId) : req.barberClerkId!;
+    if (targetBarberId !== req.barberClerkId && req.barber!.role !== 'OWNER') {
+      throw new ForbiddenError('You can only view your own bookings');
+    }
+
+    const bookings = await this.getBookingsUseCase.executeForBarber(targetBarberId);
     res.status(200).json({ success: true, data: bookings });
   });
 
@@ -53,9 +64,14 @@ export class BookingController {
   });
 
   updateStatus = asyncHandler(async (req: Request, res: Response) => {
+    const targetBarberId = req.body.barberId || req.barberClerkId!;
+    if (targetBarberId !== req.barberClerkId && req.barber!.role !== 'OWNER') {
+      throw new ForbiddenError('You can only update your own bookings');
+    }
+
     const booking = await this.updateStatusUseCase.execute({
       bookingId: req.params.id as string,
-      barberId: req.barberClerkId!,
+      barberId: targetBarberId,
       newStatus: req.body.status,
     });
     res.status(200).json({ success: true, data: booking });
