@@ -75,6 +75,7 @@ export class CreateOnlineBookingUseCase {
       status: 'PENDING',
       paymentStatus: 'UNPAID',
       paymentIntentId,
+      amountPence: service.price,
       isManual: false,
     });
 

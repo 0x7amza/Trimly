@@ -57,6 +57,7 @@ export const swaggerDocument = {
           phone: { type: 'string', example: '+447000000000' },
           address: { type: 'string', example: '123 Barber St, London' },
           bio: { type: 'string', example: 'Expert barber with 10 years experience.' },
+          avatarUrl: { type: 'string', example: 'https://example.com/avatar.jpg' },
           businessHours: {
             type: 'array',
             items: { $ref: '#/components/schemas/BusinessHours' },
@@ -1122,6 +1123,18 @@ export const swaggerDocument = {
                         completedBookings: { type: 'integer', example: 100 },
                         upcomingBookings: { type: 'integer', example: 15 },
                         cancelledBookings: { type: 'integer', example: 5 },
+                        totalRevenuePence: { type: 'integer', example: 250000 },
+                        revenueByBarber: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              barberId: { type: 'string', example: 'user_2xyz...' },
+                              name: { type: 'string', example: 'John Doe' },
+                              revenuePence: { type: 'integer', example: 125000 },
+                            },
+                          },
+                        },
                         totalBarbers: { type: 'integer', example: 3 },
                       },
                     },
@@ -1166,6 +1179,7 @@ export const swaggerDocument = {
                         completedBookings: { type: 'integer', example: 35 },
                         upcomingBookings: { type: 'integer', example: 4 },
                         cancelledBookings: { type: 'integer', example: 1 },
+                        totalRevenuePence: { type: 'integer', example: 87500 },
                       },
                     },
                   },

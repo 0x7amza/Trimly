@@ -29,6 +29,7 @@ export interface IBarber {
   shopName?: string;
   address?: string;
   bio?: string;
+  avatarUrl?: string;
   timezone: string;
   businessHours: IBusinessHours[];
   createdAt: Date;

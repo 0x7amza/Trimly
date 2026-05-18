@@ -17,7 +17,7 @@ export class StatisticsController {
   });
 
   getBarberStats = asyncHandler(async (req: Request, res: Response) => {
-    const targetBarberId = req.params.barberId || req.barberClerkId!;
+    const targetBarberId = (req.params.barberId as string) || req.barberClerkId!;
 
     // RBAC: If target is not the logged-in user, they must be the OWNER.
     // In a stricter system, we'd also verify targetBarberId belongs to the OWNER's shop.

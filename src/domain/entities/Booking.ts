@@ -20,6 +20,7 @@ export interface IBooking {
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   paymentIntentId?: string;  // Stripe Payment Intent ID
+  amountPence: number;       // Locked-in price of the service at time of booking
   isManual: boolean;         // true = added by barber (walk-in/WhatsApp)
   notes?: string;
   customerName?: string;     // For walk-ins without a customer account

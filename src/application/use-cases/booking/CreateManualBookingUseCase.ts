@@ -52,6 +52,7 @@ export class CreateManualBookingUseCase {
       endTime,
       status: 'CONFIRMED',
       paymentStatus: 'UNPAID',
+      amountPence: service.price,
       isManual: true,
       customerName: data.customerName,
       customerPhone: data.customerPhone,

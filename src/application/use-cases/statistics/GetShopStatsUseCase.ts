@@ -12,9 +12,7 @@ export class GetShopStatsUseCase {
     const barberIds = barbers.map(b => b.clerkId);
 
     // Fetch all bookings for all barbers in the shop
-    // Since MongoBookingRepository doesn't have findByBarberIds, we can fetch for each and flatten
-    // In a real app, we'd add findByBarberIds to the repo.
-    const allBookingsPromises = barberIds.map(id => this.bookingRepo.findByBarberId(id));
+    const allBookingsPromises = barberIds.map(id => this.bookingRepo.findAllByBarberId(id));
     const allBookingsArrays = await Promise.all(allBookingsPromises);
     const allBookings = allBookingsArrays.flat();
 
@@ -23,11 +21,27 @@ export class GetShopStatsUseCase {
     const upcomingBookings = allBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING').length;
     const cancelledBookings = allBookings.filter(b => b.status === 'CANCELLED').length;
 
+    const totalRevenuePence = allBookings
+      .filter(b => b.status === 'COMPLETED')
+      .reduce((sum, b) => sum + (b.amountPence || 0), 0);
+
+    const revenueByBarber = barbers.map(barber => {
+      const barberBookings = allBookings.filter(b => b.barberId === barber.clerkId && b.status === 'COMPLETED');
+      const revenue = barberBookings.reduce((sum, b) => sum + (b.amountPence || 0), 0);
+      return {
+        barberId: barber.clerkId,
+        name: barber.name,
+        revenuePence: revenue
+      };
+    });
+
     return {
       totalBookings,
       completedBookings,
       upcomingBookings,
       cancelledBookings,
+      totalRevenuePence,
+      revenueByBarber,
       totalBarbers: barbers.length,
     };
   }

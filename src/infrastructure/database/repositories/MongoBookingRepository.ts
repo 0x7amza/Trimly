@@ -65,6 +65,14 @@ export class MongoBookingRepository implements IBookingRepository {
     return docs.map((doc) => this.toEntity(doc));
   }
 
+  async findAllByBarberId(barberId: string): Promise<IBooking[]> {
+    const docs = await BookingModel.find({ barberId })
+      .sort({ startTime: 1 })
+      .lean();
+
+    return docs.map((doc) => this.toEntity(doc));
+  }
+
   async findByPaymentIntentId(paymentIntentId: string): Promise<IBooking | null> {
     const doc = await BookingModel.findOne({ paymentIntentId }).lean();
     return doc ? this.toEntity(doc) : null;
@@ -95,6 +103,7 @@ export class MongoBookingRepository implements IBookingRepository {
       status: doc.status,
       paymentStatus: doc.paymentStatus,
       paymentIntentId: doc.paymentIntentId,
+      amountPence: doc.amountPence,
       isManual: doc.isManual,
       notes: doc.notes,
       customerName: doc.customerName,

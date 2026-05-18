@@ -46,6 +46,7 @@ const barberSchema = new Schema<IBarberDocument>(
     shopName: { type: String, trim: true },
     address: { type: String, trim: true },
     bio: { type: String, trim: true, maxlength: 500 },
+    avatarUrl: { type: String, trim: true },
     timezone: { type: String, default: 'UTC' },
     businessHours: {
       type: [businessHoursSchema],

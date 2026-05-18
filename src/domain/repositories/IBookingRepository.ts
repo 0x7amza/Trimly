@@ -37,6 +37,11 @@ export interface IBookingRepository {
    */
   findByBarberId(barberId: string): Promise<IBooking[]>;
 
+  /**
+   * Find ALL bookings for a specific barber (historical and upcoming).
+   */
+  findAllByBarberId(barberId: string): Promise<IBooking[]>;
+
   findByPaymentIntentId(paymentIntentId: string): Promise<IBooking | null>;
 
   create(booking: Partial<IBooking>): Promise<IBooking>;

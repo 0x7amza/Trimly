@@ -20,6 +20,7 @@ export const updateBarberSchema = {
     phone: z.string().min(10).optional(),
     address: z.string().min(1).optional(),
     bio: z.string().max(500).optional(),
+    avatarUrl: z.string().url('Must be a valid URL').optional(),
     businessHours: z.array(businessHoursItemSchema).length(7).optional(),
   }),
 };

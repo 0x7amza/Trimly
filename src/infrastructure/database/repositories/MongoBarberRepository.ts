@@ -53,6 +53,7 @@ export class MongoBarberRepository implements IBarberRepository {
       shopName: doc.shopName,
       address: doc.address,
       bio: doc.bio,
+      avatarUrl: doc.avatarUrl,
       timezone: doc.timezone || 'UTC',
       businessHours: doc.businessHours,
       createdAt: doc.createdAt,

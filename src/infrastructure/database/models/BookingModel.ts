@@ -21,6 +21,7 @@ const bookingSchema = new Schema<IBookingDocument>(
       default: 'UNPAID',
     },
     paymentIntentId: { type: String, sparse: true },
+    amountPence: { type: Number, required: true },
     isManual: { type: Boolean, default: false },
     notes: { type: String, trim: true },
     customerName: { type: String, trim: true },
