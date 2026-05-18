@@ -48,7 +48,13 @@ export function createApp(): express.Application {
   // Note: Stripe webhook route uses express.raw() defined in payment.routes.ts
   // so it must be configured per-route BEFORE this global JSON parser takes effect.
   // express.json() only applies to routes that don't already have a body parser.
-  app.use(express.json({ limit: '10mb' }));
+  app.use((req, res, next) => {
+    if (req.originalUrl === '/api/v1/payments/webhook') {
+      next();
+    } else {
+      express.json({ limit: '10mb' })(req, res, next);
+    }
+  });
   app.use(express.urlencoded({ extended: true }));
 
   // ── Health check (before API routes) ──

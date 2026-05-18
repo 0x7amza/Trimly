@@ -2,6 +2,7 @@ import { IBookingRepository } from '@domain/repositories/IBookingRepository';
 import { IBarberRepository } from '@domain/repositories/IBarberRepository';
 import { IServiceRepository } from '@domain/repositories/IServiceRepository';
 import { NotFoundError, ValidationError } from '@shared/errors/AppError';
+import { fromZonedTime } from 'date-fns-tz';
 
 interface TimeSlot {
   startTime: string;  // ISO 8601
@@ -55,9 +56,11 @@ export class CalculateAvailabilityUseCase {
       return []; // Shop is closed on this day
     }
 
+    const timezone = barber.timezone || 'UTC';
+    
     // 4. Calculate the start/end of the business day in full datetime
-    const dayStart = this.buildDateTime(data.date, dayHours.open);
-    const dayEnd = this.buildDateTime(data.date, dayHours.close);
+    const dayStart = this.buildDateTime(data.date, dayHours.open, timezone);
+    const dayEnd = this.buildDateTime(data.date, dayHours.close, timezone);
 
     // 5. Fetch existing bookings for the day
     const existingBookings = await this.bookingRepo.findByBarberAndDateRange(
@@ -107,7 +110,8 @@ export class CalculateAvailabilityUseCase {
   /**
    * Build a full Date from "YYYY-MM-DD" and "HH:mm".
    */
-  private buildDateTime(dateStr: string, timeStr: string): Date {
-    return new Date(`${dateStr}T${timeStr}:00.000Z`);
+  private buildDateTime(dateStr: string, timeStr: string, timeZone: string): Date {
+    const localDateTimeStr = `${dateStr}T${timeStr}:00`;
+    return fromZonedTime(localDateTimeStr, timeZone);
   }
 }
